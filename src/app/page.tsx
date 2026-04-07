@@ -1,38 +1,43 @@
 'use client'
 import { getCharacters } from "@/services/api"
-import { Card } from "../components/Card"
 import { useEffect, useState } from "react"
+import CharacterCard from "@/components/CharacterCard"
+import { Character } from "@/types/character"
+import LoadingState from "@/components/LoadingState"
 
 export default function Home() {
-  const [characters, setCharacters] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
+  const [characters, setCharacters] = useState<Character[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    fetch("https://rickandmortyapi.com/api/character")
-      .then(res => res.json())
-      .then(data => {
-        setCharacters(data)
+    async function loadCharacters() {
+      try {
+        const data = await getCharacters()
+        setCharacters(data.results || [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error unknown")
+      } finally {
         setLoading(false)
-      })
+      }
+    }
+    loadCharacters()
   }, [])
 
-  if (loading) return <p>Cargando...</p>
+  if (loading) return <div className="container"><LoadingState /></div>
+  if (error) return <p style={{ textAlign: 'center', color: 'red', padding: '2rem' }}>Error: {error}</p>
 
   return (
-    <div>
-      {characters.map((char, index) => (
-        <div key={index}>
-          <h3>{char.name}</h3>
-          <Card
-            title={char.name}
-            description={char.description}
-            imageUrl={char.image}
-            onClick={() => getCharacters()}
+    <main className="container animate-in">
+      <h1>Rick and Morty Explorer</h1>
+      <div className="character-grid">
+        {characters.map((char) => (
+          <CharacterCard
+            key={char.id}
+            character={char}
           />
-          <img src={char.image} />
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </main>
   )
 }
